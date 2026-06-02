@@ -48,7 +48,7 @@ set_auto:
   name: Reset Renson to Auto
   description: Cancels any active timers and returns the unit to automatic demand management.
   
-  set_sleep:
+set_sleep:
   name: Set Renson Sleep
   description: Sets the Renson unit to a specific speed for up to 12 hours by automatically refreshing the command in the background (bypasses Renson's 120-minute limit).
   fields:
