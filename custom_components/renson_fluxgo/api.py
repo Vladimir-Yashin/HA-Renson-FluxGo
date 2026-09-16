@@ -2,11 +2,19 @@
 
 import requests
 
+# Fixed header value in the captured web session with Flux Go Wall 400 SW ver 2.8.2
+# This value is hardcoded in .js file too, but it *may change* in future SW versions.
+# Technically it is only needed in /decision/sensor_values requests
+SENSOR_SERVICE_KEY = "Avatar_11"
 
 class FluxGoApi:
     def __init__(self, host: str, api_key: str):
         self.base_url = f"http://{host}/api/v1"
-        self.headers = {"x-api-key": api_key, "Accept": "application/json"}
+        self.headers = {
+            "X-API-Key": api_key,
+            "X-API-Service-Key": SENSOR_SERVICE_KEY,
+            "Accept": "application/json"
+        }
 
     def get(self, path: str):
         response = requests.get(
