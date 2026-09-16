@@ -1,22 +1,21 @@
 # Renson Flux Go for Home Assistant
 
-A local Home Assistant integration for Renson Flux Go ventilation units. Configure the unit's IP address and API key in **Settings → Devices & Services → Add Integration**. Pairing or “knock” is outside this integration.
+A local Home Assistant integration for Renson Flux Go ventilation units.
 
-The integration uses the HTTP endpoints observed on a Flux Go 400 Wall with firmware 2.8.2. See [API_SPEC.md](API_SPEC.md) for the captured API details. Your unit must be reachable from Home Assistant on its local network.
+This is a fork of https://github.com/KNSd2/HA-renson-flux that supports Renson Flux, but not Renson Flux Go units.
 
 ## Entities
 
-- **Active Mode** shows **Boost** when either fan's boost is enabled and includes each fan's level and remaining time as attributes. Otherwise it shows **No boost**. The captured API does not expose an automatic/manual mode enum.
-- **Breeze Status** reads `/api/v1/decision/status`.
-- **CO2 Level**, **VOC Level**, and **Humidity Level** read `indoor_co2`, `indoor_voc`, and `relative_humidity`. Missing optional sensors show an unavailable value.
-- **Exhaust and Supply Fan Flow Rate, Power, and RPM** show airflow in m³/h, electrical power in W, and fan speed in rpm.
-- **Exhaust, Indoor, Intake, and Outdoor Temperature** show temperatures in °C.
+I try to report as many entities from http://<ip>/service/sensor-data and /service/device-state pages.
+Few notes:
+- **Active Mode** shows **Boost** when either fan's boost is enabled and includes each fan's level and remaining time as attributes. Otherwise it shows **No boost**.
+- **CO2 Level**, **VOC Level** are not reported. My unit doesn't have this sensor.
 
-All numeric sensors above share one `/api/v1/decision/sensor_values` request every 15 minutes and refresh after a boost command. The observed browser call included an additional `x-api-service-key` whose source is unknown. This integration uses the configured API key only. If the unit requires the service key, these sensors will be unavailable until its access method is known.
+The integration sends the fixed `X-API-Service-Key` value observed in the Flux Go Wall 400 running v2.8.2 ;this value may change in other firmware versions.
 
 ## Services
 
-- `renson_fluxgo.set_boost`: Set extract and supply boost at `speed` percent for `timer` minutes. The duration can be as long as 10 hours (`timer: 600`). For several quiet hours, choose a low level and set `timer` to the number of hours multiplied by 60. For example, `speed: 20` and `timer: 480` requests eight hours at 20%.
+- `renson_fluxgo.set_boost`: Set extract and supply boost at `speed` percent for `timer` minutes. The duration can be very long. 8-10 hours works fine.
 
 Example Home Assistant service call for eight quiet hours:
 
@@ -27,14 +26,27 @@ data:
   timer: 480
 ```
 
-There are no separate minimum, automatic, or sleep services. The API client has a `clear_boost()` helper for ending a boost early; it is not exposed as a Home Assistant service.
+- Revert to full auto mode by setting boost of 1 minute.
 
-The service domain is `renson_fluxgo`. If multiple units are configured, provide the optional `host` field to select one. A boost writes extract and supply separately; if one request fails, the other may still have changed.
 
 ## Installation
 
-Copy `custom_components/renson_fluxgo` into your Home Assistant configuration's `custom_components` directory and restart Home Assistant. Then add **Renson Flux Go** from **Settings → Devices & Services** and enter the local IP address and API key.
+1. Install as a custom repository in HACS.
+2. Configure the unit's IP address and API key in **Settings → Devices & Services → Add Integration**.
+
+The API key is printed in the leaflet delivered with the unit.
+Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. X-API-Key HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.
+
+That's the key you need.
 
 ## API features not exposed yet
 
-The API also reports supply temperature, absolute humidity, fan pressure, filter lifetime, current errors, bypass and frost protection status, and device details. Filter lifetime and bypass status look particularly useful as additional sensors. Profile, program, silent schedule, and protection settings are available in the decision tree but are not exposed as controls because their write behavior was not captured.
+Few other things like remaining filter lifetime are not exposed.
+Use web interface for those.
+
+Renson Ventilation app allows to set an operating mode (Eco/Health/Intense) with their distinct curves.
+It also supports a manual mode.
+The problem is that it "talks" to the Flux Go unit via an Azure-hosted API.
+
+I don't have the docs for the local API and frankly, IMO, 99% of the features boil down to monitoring, set_boost and a set of rules you can make in HomeAssistant. 
+

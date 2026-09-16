@@ -17,6 +17,12 @@ from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=15)
+WHOLE_NUMBER_FIELDS = (
+    "relative_humidity",
+    "absolute_humidity",
+    "exhaust_fan_flow_rate",
+    "supply_fan_flow_rate",
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -41,19 +47,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     await coordinator.async_refresh()
 
     value_entities = [
-        FluxGoSensor(coordinator, host, "indoor_co2", "CO2 Level", "mdi:molecule-co2", "ppm"),
-        FluxGoSensor(coordinator, host, "indoor_voc", "VOC Level", "mdi:air-filter"),
-        FluxGoSensor(coordinator, host, "relative_humidity", "Humidity Level", "mdi:water-percent", "%"),
-        FluxGoSensor(coordinator, host, "exhaust_fan_flow_rate", "Exhaust Fan Flow Rate", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, host, "exhaust_fan_power", "Exhaust Fan Power", "mdi:flash", "W", SensorDeviceClass.POWER),
-        FluxGoSensor(coordinator, host, "exhaust_fan_rpm", "Exhaust Fan RPM", "mdi:fan", "rpm"),
-        FluxGoSensor(coordinator, host, "supply_fan_flow_rate", "Supply Fan Flow Rate", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, host, "supply_fan_power", "Supply Fan Power", "mdi:flash", "W", SensorDeviceClass.POWER),
-        FluxGoSensor(coordinator, host, "supply_fan_rpm", "Supply Fan RPM", "mdi:fan", "rpm"),
-        FluxGoSensor(coordinator, host, "exhaust_temperature", "Exhaust Temperature", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "indoor_temperature", "Indoor Temperature", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "intake_temperature", "Intake Temperature", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "outdoor_temperature", "Outdoor Temperature", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, host, "relative_humidity", "Humidity (relative) indoor", "mdi:water-percent", "%"),
+        FluxGoSensor(coordinator, host, "absolute_humidity", "Humidity (absolute) indoor", "mdi:water-percent", "g/kg"),
+        FluxGoSensor(coordinator, host, "exhaust_fan_flow_rate", "Flow rate exhaust", "mdi:fan", "m³/h"),
+        FluxGoSensor(coordinator, host, "exhaust_fan_power", "Power of exhaust fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, host, "exhaust_fan_rpm", "RPM exhaust fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, host, "supply_fan_flow_rate", "Flow rate supply", "mdi:fan", "m³/h"),
+        FluxGoSensor(coordinator, host, "supply_fan_power", "Power of supply fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, host, "supply_fan_rpm", "RPM supply fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, host, "indoor_temperature", "Extract air temperature (ETA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, host, "outdoor_temperature", "Outdoor air temperature (ODA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, host, "exhaust_temperature", "Exhaust air temperature (EHA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, host, "supply_temperature", "Supply air temperature (SUP)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        
     ]
     status_entities = [
         FluxGoModeSensor(api, host),
@@ -98,7 +104,10 @@ class FluxGoSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self.coordinator.data.get(self.field) if self.coordinator.data else None
+        value = self.coordinator.data.get(self.field) if self.coordinator.data else None
+        if value is not None and self.field in WHOLE_NUMBER_FIELDS:
+            return round(value)
+        return value
 
 
 class FluxGoModeSensor(FluxGoBaseSensor):

@@ -55,7 +55,7 @@ def main() -> None:
         boosted = read_rpms(api, "Boosted")
     finally:
         print("Clearing boost on extract and supply.", flush=True)
-        api.clear_boost()
+        api.set_boost(level=20, minutes=1)
 
     time.sleep(30)
     cleared = read_rpms(api, "Cleared")

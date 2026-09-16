@@ -41,7 +41,3 @@ class FluxGoApi:
         for direction in ("extract", "supply"):
             self.put(f"/decision/room/0/{direction}/boost", payload)
 
-    def clear_boost(self):
-        payload = {"enable": True, "level": 30, "timeout": 5}
-        for direction in ("extract", "supply"):
-            self.put(f"/decision/room/0/{direction}/boost", payload)
