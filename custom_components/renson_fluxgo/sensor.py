@@ -6,6 +6,7 @@ from datetime import timedelta
 import requests
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -64,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     status_entities = [
         FluxGoModeSensor(api, host),
         FluxGoBreezeSensor(api, host),
+        FluxGoFilterLifetimeSensor(api, host),
     ]
     config["status_entities"] = status_entities
     async_add_entities(value_entities)
@@ -143,3 +145,18 @@ class FluxGoBreezeSensor(FluxGoBaseSensor):
         data = self.read("/decision/status")
         if data is not None:
             self._attr_native_value = data.get("breeze", "unknown").title()
+
+
+class FluxGoFilterLifetimeSensor(FluxGoBaseSensor):
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.DAYS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, api, host):
+        super().__init__(
+            api, host, "filter_current_lifetime", "Filter change in (days)", "mdi:air-filter"
+        )
+
+    def update(self):
+        hours = self.read("/filter/current_lifetime")
+        self._attr_native_value = hours // 24 if hours is not None else None

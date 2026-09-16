@@ -41,7 +41,7 @@ That's the key you need.
 
 ## API features not exposed yet
 
-Few other things like remaining filter lifetime are not exposed.
+Some other API features are not exposed.
 Use web interface for those.
 
 Renson Ventilation app allows to set an operating mode (Eco/Health/Intense) with their distinct curves.
@@ -49,4 +49,3 @@ It also supports a manual mode.
 The problem is that it "talks" to the Flux Go unit via an Azure-hosted API.
 
 I don't have the docs for the local API and frankly, IMO, 99% of the features boil down to monitoring, set_boost and a set of rules you can make in HomeAssistant. 
-
