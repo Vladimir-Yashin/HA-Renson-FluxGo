@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to Renson Flux",
+        "title": "Connect to Renson Flux Go",
         "description": "Enter the details of your Renson unit.",
         "data": {
           "host": "IP Address",

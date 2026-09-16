@@ -1,0 +1,30 @@
+set_boost:
+  name: Set Renson Flux Go boost
+  description: Apply the same boost to extract and supply airflow.
+  fields:
+    host:
+      name: IP address
+      description: Required if more than one Flux Go unit is configured.
+      selector:
+        text:
+    speed:
+      name: Level (%)
+      description: Boost level for both fans.
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 120
+          step: 1
+          unit_of_measurement: "%"
+          mode: box
+    timer:
+      name: Duration (minutes)
+      description: Boost duration in minutes.
+      selector:
+        number:
+          min: 1
+          max: 9999
+          step: 1
+          unit_of_measurement: "min"
+          mode: box

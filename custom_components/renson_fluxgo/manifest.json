@@ -1,0 +1,15 @@
+{
+  "domain": "renson_fluxgo",
+  "name": "Renson Flux Go",
+  "documentation": "https://github.com/Vladimir-Yashin/HA-Renson-FluxGo",
+  "dependencies": [],
+  "codeowners": [
+    "Vladimir Yashin"
+  ],
+  "requirements": [
+    "requests>=2.31.0"
+  ],
+  "version": "1.0.0",
+  "iot_class": "local_polling",
+  "config_flow": true
+}

@@ -1,25 +1,25 @@
-import voluptuous as vol
-import requests
-import urllib3
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+"""Config flow for Renson Flux Go."""
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-DOMAIN = "renson_flux"
+import requests
+import voluptuous as vol
+from homeassistant import config_entries
+
+from . import DOMAIN
+from .api import FluxGoApi
 
 DATA_SCHEMA = vol.Schema({
     vol.Required("host", default="192.168.1.11"): str,
     vol.Required("api_key"): str,
 })
 
+
 def test_connection(host, api_key):
-    url = f"https://{host}/api/v1/thirdparty/global"
-    headers = {"X-API-Key": api_key, "Accept": "application/json"}
     try:
-        res = requests.get(url, headers=headers, verify=False, timeout=5)
-        return res.status_code == 200
-    except Exception:
+        FluxGoApi(host, api_key).verify_token()
+        return True
+    except requests.RequestException:
         return False
+
 
 class RensonConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -30,11 +30,11 @@ class RensonConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             valid = await self.hass.async_add_executor_job(
                 test_connection, user_input["host"], user_input["api_key"]
             )
-            
             if valid:
-                return self.async_create_entry(title="Renson Flux", data=user_input)
-            else:
-                errors["base"] = "cannot_connect"
+                await self.async_set_unique_id(user_input["host"])
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title="Renson Flux Go", data=user_input)
+            errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors

@@ -1,104 +1,40 @@
-# Renson Flux for Home Assistant
+# Renson Flux Go for Home Assistant
 
-A lightweight, local Home Assistant custom component to monitor and control Renson Flux ventilation units. This integration connects directly to the Renson unit over your local network using the official third-party REST API—no cloud connection required.
+A local Home Assistant integration for Renson Flux Go ventilation units. Configure the unit's IP address and API key in **Settings → Devices & Services → Add Integration**. Pairing or “knock” is outside this integration.
 
-## Features
+The integration uses the HTTP endpoints observed on a Flux Go 400 Wall with firmware 2.8.2. See [API_SPEC.md](API_SPEC.md) for the captured API details. Your unit must be reachable from Home Assistant on its local network.
 
-**Sensors (Updates every 15 minutes or instantly after a command):**
-* **Active Mode & Speed:** Displays the current mode (Automatic or Manual) and the exact live fan percentage.
-* **Summer Breeze:** Indicates if the summer bypass/breeze mode is active.
-* **CO2 Level:** Reads the local CO2 sensor (if installed).
-* **VOC Level:** Reads the local odors/VOC sensor (if installed).
-* **Humidity Level:** Reads the local humidity sensor (if installed).
-* **Ventilation Limits:** Stores the physical lower and upper percentage limits of your unit as hidden attributes.
+## Entities
 
-**Controls (Services):**
-* `renson_flux.set_boost`: Set a custom fan percentage (11-100%) and duration.
-* `renson_flux.set_minimum`: Drop the fan to the absolute minimum safe speed for a set duration (great for sleep).
-* `renson_flux.set_auto`: Instantly cancel all timers and return the unit to automatic demand management.
+- **Active Mode** shows **Boost** when either fan's boost is enabled and includes each fan's level and remaining time as attributes. Otherwise it shows **No boost**. The captured API does not expose an automatic/manual mode enum.
+- **Breeze Status** reads `/api/v1/decision/status`.
+- **CO2 Level**, **VOC Level**, and **Humidity Level** read `indoor_co2`, `indoor_voc`, and `relative_humidity`. Missing optional sensors show an unavailable value.
+- **Exhaust and Supply Fan Flow Rate, Power, and RPM** show airflow in m³/h, electrical power in W, and fan speed in rpm.
+- **Exhaust, Indoor, Intake, and Outdoor Temperature** show temperatures in °C.
 
----
+All numeric sensors above share one `/api/v1/decision/sensor_values` request every 15 minutes and refresh after a boost command. The observed browser call included an additional `x-api-service-key` whose source is unknown. This integration uses the configured API key only. If the unit requires the service key, these sensors will be unavailable until its access method is known.
 
-## Installation via HACS
+## Services
 
-The easiest way to install this integration is using the Home Assistant Community Store (HACS).
+- `renson_fluxgo.set_boost`: Set extract and supply boost at `speed` percent for `timer` minutes. The duration can be as long as 10 hours (`timer: 600`). For several quiet hours, choose a low level and set `timer` to the number of hours multiplied by 60. For example, `speed: 20` and `timer: 480` requests eight hours at 20%.
 
-1. Open **HACS** in your Home Assistant sidebar.
-2. Click the three dots in the top right corner and select **Custom repositories**.
-3. Paste the URL of this GitHub repository into the **Repository** field.
-4. Select **Integration** as the category and click **Add**.
-5. Close the popup, search for **Renson Flux** in HACS, and click **Download**.
-6. **Restart Home Assistant.**
-
----
-
-## Configuration
-
-This integration supports full UI configuration (Config Flow). You do not need to edit your `configuration.yaml`.
-
-1. Go to **Settings > Devices & Services**.
-2. Click **+ Add Integration** in the bottom right.
-3. Search for **Renson Flux**.
-4. Enter your unit's local **IP Address** and your 10-digit **API Key**.
-5. Click **Submit**. Your sensors will appear instantly!
-
----
-
-## Recommended Dashboard Card
-
-Want a clean, ready-to-use control panel for your Home Assistant dashboard? Add a **Manual** card and paste the YAML below to get a simple readout with quick-action buttons for Shower Boosts, Sleep Mode, and Auto Reset.
+Example Home Assistant service call for eight quiet hours:
 
 ```yaml
-type: vertical-stack
-cards:
-  - type: grid
-    columns: 2
-    square: false
-    cards:
-      - show_name: true
-        show_icon: true
-        type: button
-        name: 100% Boost (30m)
-        icon: mdi:rocket-launch
-        tap_action:
-          action: call-service
-          service: renson_flux.set_boost
-          data:
-            speed: 100
-            timer: 30
-      - type: button
-        name: Minimum (60m)
-        icon: mdi:fan-minus
-        tap_action:
-          action: call-service
-          service: renson_flux.set_minimum
-          data:
-            timer: 60
-      - type: button
-        name: Sleep (8 Hours)
-        icon: mdi:weather-night
-        tap_action:
-          action: call-service
-          service: renson_flux.set_sleep
-          data:
-            speed: 20
-            timer: 480
-      - type: button
-        name: Auto (Demand)
-        icon: mdi:robot
-        tap_action:
-          action: call-service
-          service: renson_flux.set_auto
-  - type: entities
-    title: 💨 Renson Flux Dashboard
-    entities:
-      - entity: sensor.renson_active_mode
-        name: Current Mode & Speed
-      - entity: sensor.renson_breeze_status
-        name: Summer Breeze
-      - entity: sensor.renson_co2_level
-        name: CO2
-      - entity: sensor.renson_voc_level
-        name: VOC (Odors)
-      - entity: sensor.renson_humidity_level
-        name: Humidity
+action: renson_fluxgo.set_boost
+data:
+  speed: 20
+  timer: 480
+```
+
+There are no separate minimum, automatic, or sleep services. The API client has a `clear_boost()` helper for ending a boost early; it is not exposed as a Home Assistant service.
+
+The service domain is `renson_fluxgo`. If multiple units are configured, provide the optional `host` field to select one. A boost writes extract and supply separately; if one request fails, the other may still have changed.
+
+## Installation
+
+Copy `custom_components/renson_fluxgo` into your Home Assistant configuration's `custom_components` directory and restart Home Assistant. Then add **Renson Flux Go** from **Settings → Devices & Services** and enter the local IP address and API key.
+
+## API features not exposed yet
+
+The API also reports supply temperature, absolute humidity, fan pressure, filter lifetime, current errors, bypass and frost protection status, and device details. Filter lifetime and bypass status look particularly useful as additional sensors. Profile, program, silent schedule, and protection settings are available in the decision tree but are not exposed as controls because their write behavior was not captured.
