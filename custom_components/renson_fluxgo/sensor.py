@@ -8,6 +8,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -48,32 +49,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     await coordinator.async_refresh()
 
     value_entities = [
-        FluxGoSensor(coordinator, host, "relative_humidity", "Humidity (relative) indoor", "mdi:water-percent", "%"),
-        FluxGoSensor(coordinator, host, "absolute_humidity", "Humidity (absolute) indoor", "mdi:water-percent", "g/kg"),
-        FluxGoSensor(coordinator, host, "exhaust_fan_flow_rate", "Flow rate exhaust", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, host, "exhaust_fan_power", "Power of exhaust fan", "mdi:flash", "W", SensorDeviceClass.POWER),
-        FluxGoSensor(coordinator, host, "exhaust_fan_rpm", "RPM exhaust fan", "mdi:fan", "rpm"),
-        FluxGoSensor(coordinator, host, "supply_fan_flow_rate", "Flow rate supply", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, host, "supply_fan_power", "Power of supply fan", "mdi:flash", "W", SensorDeviceClass.POWER),
-        FluxGoSensor(coordinator, host, "supply_fan_rpm", "RPM supply fan", "mdi:fan", "rpm"),
-        FluxGoSensor(coordinator, host, "indoor_temperature", "Extract air temperature (ETA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "outdoor_temperature", "Outdoor air temperature (ODA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "exhaust_temperature", "Exhaust air temperature (EHA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
-        FluxGoSensor(coordinator, host, "supply_temperature", "Supply air temperature (SUP)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, entry, "relative_humidity", "Humidity (relative) indoor", "mdi:water-percent", "%"),
+        FluxGoSensor(coordinator, entry, "absolute_humidity", "Humidity (absolute) indoor", "mdi:water-percent", "g/kg"),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_flow_rate", "Flow rate exhaust", "mdi:fan", "m³/h"),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_power", "Power of exhaust fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_rpm", "RPM exhaust fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, entry, "supply_fan_flow_rate", "Flow rate supply", "mdi:fan", "m³/h"),
+        FluxGoSensor(coordinator, entry, "supply_fan_power", "Power of supply fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, entry, "supply_fan_rpm", "RPM supply fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, entry, "indoor_temperature", "Extract air temperature (ETA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, entry, "outdoor_temperature", "Outdoor air temperature (ODA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, entry, "exhaust_temperature", "Exhaust air temperature (EHA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
+        FluxGoSensor(coordinator, entry, "supply_temperature", "Supply air temperature (SUP)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
         
     ]
     status_entities = [
-        FluxGoModeSensor(api, host),
-        FluxGoBreezeSensor(api, host),
-        FluxGoFilterLifetimeSensor(api, host),
+        FluxGoModeSensor(api, entry),
+        FluxGoBreezeSensor(api, entry),
+        FluxGoFilterLifetimeSensor(api, entry),
     ]
     config["status_entities"] = status_entities
     async_add_entities(value_entities)
     async_add_entities(status_entities, True)
 
 
+def _device_info(entry: ConfigEntry) -> DeviceInfo:
+    """Describe the single ventilation unit belonging to this config entry."""
+    host = entry.data["host"]
+    return DeviceInfo(
+        # Use the config entry identity; the IP address and API key can change.
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=f"Renson Flux Go ({host})",
+        manufacturer="Renson",
+        model="Flux Go",
+        configuration_url=f"http://{host}",
+    )
+
+
 class FluxGoBaseSensor(SensorEntity):
-    def __init__(self, api, host, key, name, icon):
+    def __init__(self, api, entry: ConfigEntry, key, name, icon):
+        host = entry.data["host"]
+        self._attr_device_info = _device_info(entry)
         self.api = api
         self._attr_name = f"Renson Flux Go {name}"
         self._attr_icon = icon
@@ -91,8 +107,10 @@ class FluxGoBaseSensor(SensorEntity):
 
 
 class FluxGoSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, host, field, name, icon, unit=None, device_class=None):
+    def __init__(self, coordinator, entry: ConfigEntry, field, name, icon, unit=None, device_class=None):
         super().__init__(coordinator)
+        host = entry.data["host"]
+        self._attr_device_info = _device_info(entry)
         # Preserve unique IDs for existing Home Assistant entity registry entries.
         key = {"indoor_co2": "co2", "indoor_voc": "voc", "relative_humidity": "humidity"}.get(field, field)
         self._attr_name = f"Renson Flux Go {name}"
@@ -113,8 +131,8 @@ class FluxGoSensor(CoordinatorEntity, SensorEntity):
 
 
 class FluxGoModeSensor(FluxGoBaseSensor):
-    def __init__(self, api, host):
-        super().__init__(api, host, "mode", "Active Mode", "mdi:fan")
+    def __init__(self, api, entry: ConfigEntry):
+        super().__init__(api, entry, "mode", "Active Mode", "mdi:fan")
 
     def update(self):
         data = self.read("/decision")
@@ -138,8 +156,8 @@ class FluxGoModeSensor(FluxGoBaseSensor):
 
 
 class FluxGoBreezeSensor(FluxGoBaseSensor):
-    def __init__(self, api, host):
-        super().__init__(api, host, "breeze", "Breeze Status", "mdi:weather-windy")
+    def __init__(self, api, entry: ConfigEntry):
+        super().__init__(api, entry, "breeze", "Breeze Status", "mdi:weather-windy")
 
     def update(self):
         data = self.read("/decision/status")
@@ -152,9 +170,9 @@ class FluxGoFilterLifetimeSensor(FluxGoBaseSensor):
     _attr_native_unit_of_measurement = UnitOfTime.DAYS
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, api, host):
+    def __init__(self, api, entry: ConfigEntry):
         super().__init__(
-            api, host, "filter_current_lifetime", "Filter change in (days)", "mdi:air-filter"
+            api, entry, "filter_current_lifetime", "Filter change in (days)", "mdi:air-filter"
         )
 
     def update(self):
