@@ -48,15 +48,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     config["sensor_coordinator"] = coordinator
     await coordinator.async_refresh()
 
+    async def async_update_status():
+        try:
+            return await hass.async_add_executor_job(api.get, "/decision/status")
+        except (requests.RequestException, ValueError) as exc:
+            raise UpdateFailed(f"Cannot read Flux Go status: {exc}") from exc
+
+    status_coordinator = DataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name=f"Renson Flux Go {host} status",
+        update_method=async_update_status,
+        update_interval=SCAN_INTERVAL,
+    )
+    config["status_coordinator"] = status_coordinator
+    await status_coordinator.async_refresh()
+
     value_entities = [
         FluxGoSensor(coordinator, entry, "relative_humidity", "Humidity (relative) indoor", "mdi:water-percent", "%"),
         FluxGoSensor(coordinator, entry, "absolute_humidity", "Humidity (absolute) indoor", "mdi:water-percent", "g/kg"),
-        FluxGoSensor(coordinator, entry, "exhaust_fan_flow_rate", "Flow rate exhaust", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, entry, "exhaust_fan_power", "Power of exhaust fan", "mdi:flash", "W", SensorDeviceClass.POWER),
-        FluxGoSensor(coordinator, entry, "exhaust_fan_rpm", "RPM exhaust fan", "mdi:fan", "rpm"),
         FluxGoSensor(coordinator, entry, "supply_fan_flow_rate", "Flow rate supply", "mdi:fan", "m³/h"),
-        FluxGoSensor(coordinator, entry, "supply_fan_power", "Power of supply fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_flow_rate", "Flow rate exhaust", "mdi:fan", "m³/h"),
         FluxGoSensor(coordinator, entry, "supply_fan_rpm", "RPM supply fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_rpm", "RPM exhaust fan", "mdi:fan", "rpm"),
+        FluxGoSensor(coordinator, entry, "exhaust_fan_power", "Power of exhaust fan", "mdi:flash", "W", SensorDeviceClass.POWER),
+        FluxGoSensor(coordinator, entry, "supply_fan_power", "Power of supply fan", "mdi:flash", "W", SensorDeviceClass.POWER),
         FluxGoSensor(coordinator, entry, "indoor_temperature", "Extract air temperature (ETA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
         FluxGoSensor(coordinator, entry, "outdoor_temperature", "Outdoor air temperature (ODA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
         FluxGoSensor(coordinator, entry, "exhaust_temperature", "Exhaust air temperature (EHA)", "mdi:thermometer", "°C", SensorDeviceClass.TEMPERATURE),
@@ -64,12 +80,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         
     ]
     status_entities = [
-        FluxGoModeSensor(api, entry),
-        FluxGoBreezeSensor(api, entry),
+        FluxGoBoostSensor(api, entry),
         FluxGoFilterLifetimeSensor(api, entry),
     ]
     config["status_entities"] = status_entities
     async_add_entities(value_entities)
+    async_add_entities([
+        FluxGoBreezeSensor(status_coordinator, entry),
+        FluxGoBypassSensor(status_coordinator, entry),
+    ])
     async_add_entities(status_entities, True)
 
 
@@ -130,9 +149,9 @@ class FluxGoSensor(CoordinatorEntity, SensorEntity):
         return value
 
 
-class FluxGoModeSensor(FluxGoBaseSensor):
+class FluxGoBoostSensor(FluxGoBaseSensor):
     def __init__(self, api, entry: ConfigEntry):
-        super().__init__(api, entry, "mode", "Active Mode", "mdi:fan")
+        super().__init__(api, entry, "mode", "Boost Status", "mdi:fan")
 
     def update(self):
         data = self.read("/decision")
@@ -155,14 +174,32 @@ class FluxGoModeSensor(FluxGoBaseSensor):
             self._attr_extra_state_attributes = {}
 
 
-class FluxGoBreezeSensor(FluxGoBaseSensor):
-    def __init__(self, api, entry: ConfigEntry):
-        super().__init__(api, entry, "breeze", "Breeze Status", "mdi:weather-windy")
+class FluxGoStatusSensor(CoordinatorEntity, SensorEntity):
+    """Read a status field from the shared decision status response."""
 
-    def update(self):
-        data = self.read("/decision/status")
-        if data is not None:
-            self._attr_native_value = data.get("breeze", "unknown").title()
+    def __init__(self, coordinator, entry: ConfigEntry, field, name, icon):
+        super().__init__(coordinator)
+        host = entry.data["host"]
+        self._attr_device_info = _device_info(entry)
+        self._attr_name = f"Renson Flux Go {name}"
+        self._attr_icon = icon
+        self._attr_unique_id = f"renson_flux_{host}_{field}"
+        self.field = field
+
+    @property
+    def native_value(self):
+        data = self.coordinator.data or {}
+        return (data.get(self.field) or "unknown").title()
+
+
+class FluxGoBreezeSensor(FluxGoStatusSensor):
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator, entry, "breeze", "Breeze Status", "mdi:weather-windy")
+
+
+class FluxGoBypassSensor(FluxGoStatusSensor):
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator, entry, "bypass", "Bypass Status", "mdi:valve")
 
 
 class FluxGoFilterLifetimeSensor(FluxGoBaseSensor):

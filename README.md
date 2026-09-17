@@ -34,7 +34,7 @@ data:
 1. Install as a custom repository in HACS.
 2. Configure the unit's IP address and API key in **Settings → Devices & Services → Add Integration**.
 
-Setup creates one **Renson Flux Go (<IP address>)** device containing all 15 sensor entities, with a link to the unit's web interface. Each configured unit has its own device.
+Setup creates one **Renson Flux Go (<IP address>)** device containing all 16 sensor entities, with a link to the unit's web interface.
 
 The API key is printed in the leaflet delivered with the unit.
 Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. X-API-Key HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.

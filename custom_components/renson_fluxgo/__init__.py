@@ -33,8 +33,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def refresh():
         data = hass.data[DOMAIN][entry.entry_id]
-        if coordinator := data.get("sensor_coordinator"):
-            await coordinator.async_request_refresh()
+        for key in ("sensor_coordinator", "status_coordinator"):
+            if coordinator := data.get(key):
+                await coordinator.async_request_refresh()
         for entity in data.get("status_entities", []):
             await entity.async_update_ha_state(force_refresh=True)
 
