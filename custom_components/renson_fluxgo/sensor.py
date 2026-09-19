@@ -185,7 +185,7 @@ class FluxGoStatusSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         host = entry.data["host"]
         self._attr_device_info = _device_info(entry)
-        self._attr_name = f"Renson Flux Go {name}"
+        self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"renson_flux_{host}_{field}"
         self.field = field
