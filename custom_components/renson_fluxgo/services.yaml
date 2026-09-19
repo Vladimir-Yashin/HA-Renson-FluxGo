@@ -1,5 +1,5 @@
 set_boost:
-  name: Set Renson Flux Go boost
+  name: Activate boost
   description: Apply the same boost to extract and supply airflow.
   fields:
     host:

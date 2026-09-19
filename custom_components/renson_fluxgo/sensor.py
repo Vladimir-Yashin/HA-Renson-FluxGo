@@ -4,7 +4,11 @@ import logging
 from datetime import timedelta
 
 import requests
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
@@ -98,7 +102,7 @@ def _device_info(entry: ConfigEntry) -> DeviceInfo:
     return DeviceInfo(
         # Use the config entry identity; the IP address and API key can change.
         identifiers={(DOMAIN, entry.entry_id)},
-        name=f"Renson Flux Go ({host})",
+        name=f"Flux Go ({host})",
         manufacturer="Renson",
         model="Flux Go",
         configuration_url=f"http://{host}",
@@ -110,7 +114,7 @@ class FluxGoBaseSensor(SensorEntity):
         host = entry.data["host"]
         self._attr_device_info = _device_info(entry)
         self.api = api
-        self._attr_name = f"Renson Flux Go {name}"
+        self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"renson_flux_{host}_{key}"
         self._attr_native_value = None
@@ -132,7 +136,7 @@ class FluxGoSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = _device_info(entry)
         # Preserve unique IDs for existing Home Assistant entity registry entries.
         key = {"indoor_co2": "co2", "indoor_voc": "voc", "relative_humidity": "humidity"}.get(field, field)
-        self._attr_name = f"Renson Flux Go {name}"
+        self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"renson_flux_{host}_{key}"
         self.field = field
