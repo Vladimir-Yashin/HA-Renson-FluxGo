@@ -38,7 +38,7 @@ data:
 Setup creates one **Renson Flux Go (IP address)** device containing all sensor entities, with a link to the unit's web interface.
 
 The API key is printed in the leaflet delivered with the unit.
-Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. `API-Key` HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.
+Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. `X-API-Key` HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.
 
 That's the key you need.
 
