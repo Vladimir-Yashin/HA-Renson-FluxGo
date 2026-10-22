@@ -31,13 +31,14 @@ data:
 
 ## Installation
 
-1. Install as a custom repository in HACS.
+0. Make sure your Home Assistant has HACS installed. Refer to https://hacs.xyz/docs/use/download/download/ for how to.
+1. Search "Renson Flux Go" in HACS and install.
 2. Configure the unit's IP address and API key in **Settings → Devices & Services → Add Integration**.
 
-Setup creates one **Renson Flux Go (<IP address>)** device containing all 16 sensor entities, with a link to the unit's web interface.
+Setup creates one **Renson Flux Go (IP address)** device containing all sensor entities, with a link to the unit's web interface.
 
 The API key is printed in the leaflet delivered with the unit.
-Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. X-API-Key HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.
+Another way to get it is to visit Flux Go web UI, wait for it to ask you to press a button on it, then pass the authentication. `API-Key` HTTP header will now be sent in every HTTP request. Use your browser's dev tools console to inspect the requests.
 
 That's the key you need.
 
@@ -50,4 +51,4 @@ Renson Ventilation app allows to set an operating mode (Eco/Health/Intense) with
 It also supports a manual mode.
 The problem is that it "talks" to the Flux Go unit via an Azure-hosted API.
 
-I don't have the docs for the local API and frankly, IMO, 99% of the features boil down to monitoring, set_boost and a set of rules you can make in HomeAssistant. 
+I don't have the docs for the local API and frankly, IMO, 99% of the features boil down to monitoring, set_boost and a set of automations and schedules you can make in Home Assistant. 
